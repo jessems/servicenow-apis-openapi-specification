@@ -1,0 +1,132 @@
+openapi: 3.0.2
+info:
+  version: '1.0.0'
+  
+  title: ServiceNow Table API
+
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  
+  
+  description: |
+    The Table API provides endpoints that allow you to perform create, read, update, and delete (CRUD) operations on existing tables.
+    The calling user must have sufficient roles to access the data in the table specified in the request.
+
+externalDocs:
+  description: Official docs.
+  url: 'https://developer.servicenow.com/dev.do#!/reference/api/vancouver/rest/c_TableAPI'
+
+security:
+  - JSessionToken: []
+  - csfrToken: []
+
+paths:
+  '/now/table/{tableName}':
+
+    get: # documentation for GET operation for this path
+
+      # summary is up to 120 symbold but we recommend to be shortest as possible
+      summary: Retrieves multiple records for the specified table.
+      
+      # you can use GFM in operation description too: https://guides.github.com/features/mastering-markdown
+      description: |
+        Retrieves multiple records for the specified table.
+      
+      # operationId should be unique across the whole specification
+      operationId: getManyRecords
+      
+      # list of parameters for the operation
+      parameters:
+        - name: tableName
+          in: path
+          description: Name of the table from which to retrieve the records.
+          required: true
+          schema:
+            type: string
+        - name: sysparm_fields
+          in: query
+          description: Comma-separated list of fields to return in the response.
+          schema:
+            type: string
+        - name: sysparm_query
+          in: query
+          description: |
+            Encoded query used to filter the result set. You can use a UI filter to obtain a properly encoded query.
+            Syntax: sysparm_query=<col_name><operator><value>.
+            <col_name>: Name of the table column to filter against.
+            <operator>: Supports the following values:
+            =: Exactly matches <value>.
+            !=: Does not match <value>.
+            ^: Logically AND multiple query statements.
+            ^OR: Logically OR multiple query statements.
+            LIKE: <col_name> contains the specified string. Only works for <col_name> fields whose data type is string.
+            STARTSWITH: <col_name> starts with the specified string. Only works for <col_name> fields whose data type is string.
+            ENDSWITH: <col_name> ends with the specified string. Only works for <col_name> fields whose data type is string.
+            <value>: Value to match against.
+            All parameters are case-sensitive. Queries can contain more than one entry, such as sysparm_query=<col_name><operator><value>[<operator><col_name><operator><value>].
+
+            For example:
+
+            (sysparm_query=caller_id=javascript:gs.getUserID()^active=true)
+
+            Encoded queries also support order by functionality. To sort responses based on certain fields, use the ORDERBY and ORDERBYDESC clauses in sysparm_query.
+
+            Syntax:
+            ORDERBY<col_name>
+            ORDERBYDESC<col_name>
+            For example: sysparm_query=active=true^ORDERBYnumber^ORDERBYDESCcategory
+
+            This query filters all active records and orders the results in ascending order by number, and then in descending order by category.
+
+            If part of the query is invalid, such as by specifying an invalid field name, the instance ignores the invalid part. It then returns rows using only the valid portion of the query. You can control this behavior using the property glide.invalid_query.returns_no_rows. Set this property to true to return no rows on an invalid query.
+            Note: The glide.invalid_query.returns_no_rows property controls the behavior of all queries across the instance, such as in lists, scripts (GlideRecord.query()), and web service APIs.
+          
+          schema:
+            type: string
+        - name: Accept
+          in: header
+          description: Data format of the response body.
+          required: true
+          schema:
+            type: string
+            default: application/json
+            enum:
+              - application/json
+              - application/xml
+    
+
+      responses: # list of responses
+        '200':
+          description: Request completed successfully. If a valid query returned no results, the response body contains only an empty result array.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Record'
+  
+# An object to hold reusable parts that can be used across the definition
+components:
+  schemas:
+    Record:
+      description: A ServiceNow record.
+      type: object
+  headers:
+    ExpiresAfter:
+      description: date in UTC when token expires
+      schema:
+        type: string
+        format: date-time
+  securitySchemes:
+    JSessionToken: # arbitrary name for the security scheme
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+    csfrToken: # arbitrary name for the security scheme
+      type: apiKey
+      in: header
+      name: X-UserToken
